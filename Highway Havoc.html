@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Highway Havoc</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #mobileControls {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            z-index: 100;
+        }
+        .mobileBtn {
+            background-color: rgba(0, 255, 255, 0.3);
+            border: 2px solid rgba(0, 255, 255, 0.8);
+            color: #fff;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 24px;
+            touch-action: manipulation;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            position: relative;
+        }
+        .mobileBtn:active, .mobileBtn:hover {
+            background-color: rgba(0, 255, 255, 0.6);
+            transform: scale(1.1);
+        }
+        #gameButtons {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .achievement {
+            position: fixed;
+            right: -300px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid rgba(0, 255, 255, 0.8);
+            color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            transition: right 0.5s ease;
+            z-index: 1000;
+        }
+        .rulesPopup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 20, 40, 0.95);
+            border: 3px solid rgba(0, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            width: 40%;
+            max-width: 300px;
+            height: 60vh;
+            max-height: 450px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+                        inset 0 0 50px rgba(0, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .rulesTitle {
+            color: #00ffff;
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+            width: 100%;
+        }
+        .rulesContent {
+            color: #fff;
+            font-size: 1em;
+            line-height: 1.5;
+            text-align: left;
+            margin: 15px 0;
+            padding: 0 15px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s forwards;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .bullet-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .bullet-point {
+            position: relative;
+            padding-left: 25px;
+            margin: 8px 0;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+        }
+        .bullet-point:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 8px;
+            height: 8px;
+            background: rgba(0, 255, 255, 0.8);
+            border-radius: 50%;
+            margin-top: 1px;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+        }
+        .bullet-point:after {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 12px;
+            width: 1px;
+            height: calc(100% + 4px);
+            background: rgba(0, 255, 255, 0.3);
+            display: none;
+        }
+        .bullet-point:not(:last-child):after {
+            display: block;
+        }
+        .bullet-icon {
+            display: inline-block;
+            margin-right: 8px;
+            font-size: 1.1em;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .rulesList {
+            color: #fff;
+            font-size: 1.2em;
+            line-height: 1.6;
+            width: 100%;
+        }
+        .ruleItem {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 3px solid #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .rulesButtons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .rulesButton {
+            padding: 8px 20px;
+            font-size: 1em;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        .rulesButton:hover {
+            background: rgba(0, 255, 255, 0.4);
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+        .phase-indicator {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .phase-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+        .phase-dot.active {
+            background: rgba(0, 255, 255, 0.8);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            transform: scale(1.2);
+        }
+        .startButton {
+            display: block;
+            margin: 30px auto 0;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .startButton:hover {
+            background: rgba(0, 255, 255, 0.4);
+            transform: scale(1.05);
+        }
+        @media (max-height: 600px) {
+            .rulesPopup {
+                height: 70vh;
+                padding: 15px;
+                max-height: 400px;
+            }
+            .rulesTitle {
+                font-size: 1.3em;
+                margin-bottom: 10px;
+            }
+            .rulesContent {
+                font-size: 0.9em;
+                margin: 8px 0;
+            }
+            .rulesButton {
+                padding: 6px 15px;
+            }
+        }
+        @media (max-width: 480px) {
+            .rulesPopup {
+                width: 75%;
+                padding: 15px;
+            }
+            .phase-indicator {
+                right: 8px;
+            }
+            .phase-dot {
+                width: 6px;
+                height: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="mobileControls">
+        <button class="mobileBtn" id="leftBtn">←</button>
+        <button class="mobileBtn" id="rightBtn">→</button>
+    </div>
+    <div id="gameButtons">
+        <button class="mobileBtn" id="startBtn">Start</button>
+        <button class="mobileBtn" id="restartBtn" style="display: none;">Restart</button>
+    </div>
+    <script>
+        let player;
+        let cars = [];
+        let gameState = "rules";
+        let score = 0;
+        let lives = 3;
+        let checkpoint = 0;
+        let lastCheckpointTime = 0;
+        let carSpeed = 3;
+        let spawnRate = 0.02;
+        let flashAlpha = 0;
+        let canvasRatio = 2/3;
+        let highScore = localStorage.getItem('highScore') || 0;
+        let achievements = [];
+        let combo = 0;
+        let maxCombo = 0;
+        let currentPhase = 1;
+        
+        // New variables for enhancements
+        let isNightMode = false;
+        let dayNightTransition = 0;
+        let lastLevelChange = 0;
+        let currentLevel = 1;
+        let laneAnimOffset = 0;
+        let bgColor = { r: 0, g: 20, b: 40 };
+        let targetBgColor = { r: 0, g: 20, b: 40 };
+        
+        // Heart power-up variables
+        let heartPowerUp = null;
+        let heartSpawned = false;
+        let heartCollected = false;
+        let heartPulseSize = 0;
+        let heartPulseDir = 1;
+        
+        // Achievement system
+        const ACHIEVEMENTS = [
+            { id: 'first_dodge', title: 'Quick Reflexes', desc: 'Dodge your first car', unlocked: false },
+            { id: 'combo_5', title: 'Combo Master', desc: 'Get a 5x combo', unlocked: false },
+            { id: 'score_100', title: 'Century', desc: 'Score 100 points', unlocked: false },
+            { id: 'level_5', title: 'Survivor', desc: 'Reach Level 5', unlocked: false },
+            { id: 'perfect_level', title: 'Perfect Run', desc: 'Complete a level without getting hit', unlocked: false }
+        ];
+
+        const INSTRUCTION_PHASES = [
+            {
+                title: "Welcome to Highway Havoc",
+                content: `<div style="text-align: center; margin-bottom: 20px;">You're on the fastest highway, where survival is the only goal.</div>
+                         <ul class="bullet-list">
+                            <li class="bullet-point"><span class="bullet-icon">🎯</span>Navigate through traffic</li>
+                            <li class="bullet-point"><span class="bullet-icon">⚡</span>Test your reflexes</li>
+                            <li class="bullet-point"><span class="bullet-icon">🏆</span>Build your high score</li>
+                         </ul>`
+            },
+            {
+                title: "Game Objective",
+                content: `<ul class="bullet-list">
+                            <li class="bullet-point"><span class="bullet-icon">🔴</span>Red cars: Oncoming traffic in left lanes - High risk, high reward</li>
+                            <li class="bullet-point"><span class="bullet-icon">🔵</span>Blue cars: Same direction in right lanes - Safer but fewer points</li>
+                            <li class="bullet-point"><span class="bullet-icon">🟢</span>Green cars appear after level 5 and change lanes</li>
+                            <li class="bullet-point"><span class="bullet-icon">🔥</span>Chain dodges to build combo multipliers</li>
+                         </ul>`
+            },
+            {
+                title: "How to Play",
+                content: isMobile() ? 
+                    `<ul class="bullet-list">
+                        <li class="bullet-point"><span class="bullet-icon">👆</span>Tap left side to move left</li>
+                        <li class="bullet-point"><span class="bullet-icon">👆</span>Tap right side to move right</li>
+                        <li class="bullet-point"><span class="bullet-icon">⚡</span>Quick reactions are key</li>
+                        <li class="bullet-point"><span class="bullet-icon">🎯</span>Time your moves carefully</li>
+                     </ul>` :
+                    `<ul class="bullet-list">
+                        <li class="bullet-point"><span class="bullet-icon">⬅️</span>Left Arrow or 'A' to move left</li>
+                        <li class="bullet-point"><span class="bullet-icon">➡️</span>Right Arrow or 'D' to move right</li>
+                        <li class="bullet-point"><span class="bullet-icon">⚡</span>React quickly to survive</li>
+                        <li class="bullet-point"><span class="bullet-icon">🎯</span>Plan your moves ahead</li>
+                     </ul>`
+            },
+            {
+                title: "Ready to Play?",
+                content: `<div style="text-align: center;">
+                            <div style="font-size: 1.2em; margin-bottom: 15px;">Time to hit the highway!</div>
+                            <ul class="bullet-list">
+                                <li class="bullet-point"><span class="bullet-icon">💫</span>Prove your driving skills</li>
+                                <li class="bullet-point"><span class="bullet-icon">🏆</span>Set new high scores</li>
+                                <li class="bullet-point"><span class="bullet-icon">⭐</span>Unlock achievements</li>
+                            </ul>
+                         </div>`
+            }
+        ];
+
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        function showInstructions() {
+            const existingPopup = document.getElementById('rulesPopup');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+
+            const popup = document.createElement('div');
+            popup.id = 'rulesPopup';
+            popup.className = 'rulesPopup';
+
+            const phase = INSTRUCTION_PHASES[currentPhase - 1];
+
+            popup.innerHTML = `
+                <h1 class="rulesTitle">${phase.title}</h1>
+                <div class="rulesContent">${phase.content}</div>
+                <div class="phase-indicator">
+                    ${Array(4).fill(0).map((_, i) => 
+                        `<div class="phase-dot${i + 1 === currentPhase ? ' active' : ''}"></div>`
+                    ).join('')}
+                </div>
+                <div class="rulesButtons">
+                    ${currentPhase === 4 ? `
+                        <button class="rulesButton" onclick="startGame()">Start Game</button>
+                        <button class="rulesButton" onclick="resetInstructions()">Replay Instructions</button>
+                    ` : `
+                        <button class="rulesButton" onclick="nextPhase()">Next</button>
+                    `}
+                </div>
+            `;
+
+            document.body.appendChild(popup);
+        }
+
+        function nextPhase() {
+            if (currentPhase < 4) {
+                currentPhase++;
+                showInstructions();
+            }
+        }
+
+        function resetInstructions() {
+            currentPhase = 1;
+            showInstructions();
+        }
+
+        function setup() {
+            let canvasWidth, canvasHeight;
+            if (windowWidth / windowHeight > canvasRatio) {
+                canvasHeight = windowHeight * 0.9;
+                canvasWidth = canvasHeight * canvasRatio;
+            } else {
+                canvasWidth = windowWidth * 0.9;
+                canvasHeight = canvasWidth / canvasRatio;
+            }
+            let canvas = createCanvas(canvasWidth, canvasHeight);
+            canvas.parent(document.body);
+            
+            player = new Player();
+            
+            // Setup controls
+            const leftBtn = document.getElementById('leftBtn');
+            const rightBtn = document.getElementById('rightBtn');
+            const startBtn = document.getElementById('startBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            
+            leftBtn.addEventListener('touchstart', handleLeft);
+            leftBtn.addEventListener('mousedown', handleLeft);
+            rightBtn.addEventListener('touchstart', handleRight);
+            rightBtn.addEventListener('mousedown', handleRight);
+            startBtn.addEventListener('click', () => {
+                if (gameState === "rules") {
+                    showInstructions();
+                }
+            });
+            restartBtn.addEventListener('click', resetGame);
+            
+            // Show initial instructions
+            showInstructions();
+            
+            // Load achievements
+            loadAchievements();
+        }
+
+        function windowResized() {
+            let canvasWidth, canvasHeight;
+            if (windowWidth / windowHeight > canvasRatio) {
+                canvasHeight = windowHeight * 0.9;
+                canvasWidth = canvasHeight * canvasRatio;
+            } else {
+                canvasWidth = windowWidth * 0.9;
+                canvasHeight = canvasWidth / canvasRatio;
+            }
+            resizeCanvas(canvasWidth, canvasHeight);
+        }
+
+        function handleLeft(e) {
+            e.preventDefault();
+            if (gameState === "playing") {
+                player.moveLeft();
+            }
+        }
+
+        function handleRight(e) {
+            e.preventDefault();
+            if (gameState === "playing") {
+                player.moveRight();
+            }
+        }
+
+        function startGame() {
+            // Remove rules popup
+            const popup = document.getElementById('rulesPopup');
+            if (popup) {
+                popup.remove();
+            }
+            
+            gameState = "playing";
+            const startBtn = document.getElementById('startBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            startBtn.style.display = 'none';
+            restartBtn.style.display = 'block';
+            resetGame();
+        }
+
+        function showAchievement(achievement) {
+            const elem = document.createElement('div');
+            elem.className = 'achievement';
+            elem.innerHTML = `🏆 ${achievement.title}<br>${achievement.desc}`;
+            elem.style.top = `${achievements.length * 100 + 20}px`;
+            document.body.appendChild(elem);
+            
+            setTimeout(() => elem.style.right = '20px', 100);
+            setTimeout(() => {
+                elem.style.right = '-300px';
+                setTimeout(() => elem.remove(), 500);
+            }, 3000);
+            
+            achievements.push(achievement.id);
+            localStorage.setItem('achievements', JSON.stringify(achievements));
+        }
+
+        function loadAchievements() {
+            const saved = localStorage.getItem('achievements');
+            if (saved) {
+                achievements = JSON.parse(saved);
+            }
+        }
+
+        function checkAchievements() {
+            ACHIEVEMENTS.forEach(achievement => {
+                if (!achievements.includes(achievement.id)) {
+                    if (
+                        (achievement.id === 'first_dodge' && score > 0) ||
+                        (achievement.id === 'combo_5' && combo >= 5) ||
+                        (achievement.id === 'score_100' && score >= 100) ||
+                        (achievement.id === 'level_5' && checkpoint >= 4) ||
+                        (achievement.id === 'perfect_level' && checkpoint > 0 && lives === 3)
+                    ) {
+                        showAchievement(achievement);
+                    }
+                }
+            });
+        }
+
+        function draw() {
+            background(0, 20, 40);
+            
+            // Only draw rules if there's no popup visible
+            if (gameState === "rules" && !document.getElementById('rulesPopup')) {
+                drawRules();
+            } else if (gameState === "menu") {
+                drawMenu();
+            } else if (gameState === "playing") {
+                playGame();
+            } else if (gameState === "gameover") {
+                drawGameOver();
+            }
+            
+            if (flashAlpha > 0) {
+                fill(255, 0, 0, flashAlpha);
+                rect(0, 0, width, height);
+                flashAlpha -= 5;
+            }
+        }
+
+        function drawRules() {
+            // Semi-transparent background
+            fill(0, 0, 0, 200);
+            rect(0, 0, width, height);
+            
+            // Rules title
+            textSize(width * 0.08);
+            textAlign(CENTER, CENTER);
+            
+            // Use darker colors in night mode
+            if (isNightMode) {
+                fill(0, 128, 128, 200);
+            } else {
+                fill(0, 255, 255);
+            }
+            
+            text("HOW TO PLAY", width/2, height/6);
+            
+            // Rules content
+            textSize(width * 0.04);
+            textAlign(LEFT, TOP);
+            let rulesText = [
+                "• Use LEFT/RIGHT arrows to change lanes",
+                "• Red cars (left lanes) move down",
+                "• Blue cars (right lanes) move up",
+                "• Avoid collisions to survive",
+                "• Stay in lane with cars to score points",
+                "• Chain cars for combo multipliers",
+                "• Hearts appear every 5 levels"
+            ];
+            
+            let startY = height/3;
+            let lineHeight = height/15;
+            
+            for (let i = 0; i < rulesText.length; i++) {
+                text(rulesText[i], width/4, startY + i * lineHeight);
+            }
+            
+            // Back button
+            textSize(width * 0.05);
+            textAlign(CENTER, CENTER);
+            text("Click anywhere to return", width/2, height * 0.9);
+        }
+
+        function drawMenu() {
+            fill(0, 255, 255);
+            textAlign(CENTER);
+            
+            // Title
+            textSize(width * 0.12);
+            text("Highway Havoc", width/2, height/3);
+            
+            // Start instruction
+            textSize(width * 0.08);
+            text("Press 'S' to Start", width/2, height/2);
+            
+            // Controls
+            textSize(width * 0.05);
+            text("← → to change lanes", width/2, height/2 + height * 0.15);
+            text("Dodge or follow traffic to score", width/2, height/2 + height * 0.25);
+        }
+
+        function playGame() {
+            // Set background
+            background(0, 20, 40);
+            
+            // Draw lane indicators
+            laneAnimOffset += 0.5;
+            if (laneAnimOffset > height/20) laneAnimOffset = 0;
+            
+            for (let i = 0; i < 6; i++) {
+                if (i >= 3) {
+                    // Blue lanes (same direction as player) - moving upward - RIGHT SIDE
+                    fill(0, 150, 255, 30); // Normal blue
+                    // Draw upward arrows for same direction traffic
+                    for (let y = -laneAnimOffset; y < height; y += height/20) {
+                        drawArrow(i * width/6 + width/12, y, -1);
+                    }
+                } else {
+                    // Red lanes (opposing traffic) - moving downward - LEFT SIDE
+                    fill(255, 50, 100, 30); // Normal red
+                    // Draw downward arrows for oncoming traffic
+                    for (let y = -laneAnimOffset; y < height; y += height/20) {
+                        drawArrow(i * width/6 + width/12, y, 1);
+                    }
+                }
+                noStroke();
+                rect(i * width/6, 0, width/6, height);
+                
+                // Lane dividers
+                stroke(0, 150, 255, 100);
+                strokeWeight(2);
+                line((i+1) * width/6, 0, (i+1) * width/6, height);
+            }
+            
+            // Update and display player
+            player.update();
+            player.show();
+            
+            // Spawn and update cars
+            if (random() < spawnRate) {
+                cars.push(new Car(floor(random(6))));
+            }
+            
+            // Handle heart power-up (every 5 levels)
+            if (currentLevel % 5 === 0 && !heartSpawned && !heartCollected) {
+                // Spawn heart on a red lane (0-2)
+                let redLane = floor(random(3)); // 0, 1, or 2
+                heartPowerUp = new Heart(redLane);
+                heartSpawned = true;
+                
+                // Show heart notification
+                const heartNotif = document.createElement('div');
+                heartNotif.className = 'achievement';
+                heartNotif.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(255, 50, 50, 0.3);
+                    border: 2px solid rgba(255, 50, 50, 0.8);
+                    color: #fff;
+                    padding: 15px 30px;
+                    border-radius: 10px;
+                    font-size: 20px;
+                    text-align: center;
+                    animation: fadeInRight 0.3s ease-out;
+                    z-index: 1000;
+                `;
+                heartNotif.innerHTML = `❤️ Extra Life Available!`;
+                document.body.appendChild(heartNotif);
+                setTimeout(() => {
+                    heartNotif.style.opacity = '0';
+                    heartNotif.style.transform = 'translateX(100px)';
+                    heartNotif.style.transition = 'all 0.3s ease-out';
+                    setTimeout(() => heartNotif.remove(), 2000);
+                }, 2000);
+            }
+            
+            // Update and display heart power-up
+            if (heartPowerUp && heartPowerUp.hits(player)) {
+                lives++;
+                heartCollected = true;
+                heartPowerUp = null;
+                
+                const heartCollectedNotif = document.createElement('div');
+                heartCollectedNotif.className = 'achievement';
+                heartCollectedNotif.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(255, 50, 50, 0.3);
+                    border: 2px solid rgba(255, 50, 50, 0.8);
+                    color: #fff;
+                    padding: 15px 30px;
+                    border-radius: 10px;
+                    font-size: 20px;
+                    text-align: center;
+                    animation: fadeInRight 0.3s ease-out;
+                    z-index: 1000;
+                `;
+                heartCollectedNotif.innerHTML = `❤️ Extra Life Collected!`;
+                document.body.appendChild(heartCollectedNotif);
+                setTimeout(() => {
+                    heartCollectedNotif.style.opacity = '0';
+                    heartCollectedNotif.style.transform = 'translateX(100px)';
+                    heartCollectedNotif.style.transition = 'all 0.3s ease-out';
+                    setTimeout(() => heartCollectedNotif.remove(), 300);
+                }, 1500);
+            }
+            
+            // Update and display cars
+            for (let i = cars.length - 1; i >= 0; i--) {
+                cars[i].update();
+                cars[i].show();
+                
+                if (cars[i].hits(player)) {
+                    lives--;
+                    combo = 0;
+                    cars.splice(i, 1);
+                    flashAlpha = 100;
+                    if (lives <= 0) {
+                        gameState = "gameover";
+                    }
+                    continue;
+                }
+                
+                // Scoring logic - check if car has passed the player without collision
+                // For blue cars (moving upward), check if they've moved above the player's center
+                // For red cars (moving downward), check if they've moved below the player's center
+                if (!cars[i].scored) {
+                    if ((cars[i].direction === -1 && cars[i].y < player.y && cars[i].lane === player.lane) ||
+                        (cars[i].direction === 1 && cars[i].y > player.y && cars[i].lane === player.lane)) {
+                        combo++;
+                        maxCombo = Math.max(maxCombo, combo);
+                        let comboPoints = (cars[i].direction === 1) ? 10 : 20;
+                        comboPoints *= (1 + combo * 0.1);
+                        score += Math.floor(comboPoints);
+                        cars[i].scored = true;
+                        
+                        if (combo > 1) {
+                            const elem = document.createElement('div');
+                            elem.className = 'achievement';
+                            elem.style.cssText = `
+                                position: fixed;
+                                bottom: 10%;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: rgba(0, 255, 255, 0.2);
+                                border: 2px solid rgba(0, 255, 255, 0.8);
+                                color: #fff;
+                                padding: 15px 30px;
+                                border-radius: 10px;
+                                font-size: 24px;
+                                text-align: center;
+                                animation: fadeInUp 0.3s ease-out;
+                                z-index: 1000;
+                            `;
+                            elem.innerHTML = `${combo}x COMBO!`;
+                            document.body.appendChild(elem);
+                            setTimeout(() => {
+                                elem.style.opacity = '0';
+                                elem.style.transform = 'translateX(-50%) translateY(-20px)';
+                                elem.style.transition = 'all 0.3s ease-out';
+                                setTimeout(() => elem.remove(), 300);
+                            }, 700);
+                        }
+                    }
+                }
+                
+                if (cars[i].offscreen()) {
+                    cars.splice(i, 1);
+                }
+            }
+            
+            // Progressive difficulty
+            if (millis() - lastCheckpointTime > 10000) {
+                // Level-based difficulty scaling with smoother transitions
+                let levelGroup = Math.floor((currentLevel - 1) / 5);
+                let isSpeedPhase = levelGroup % 2 === 0;
+                let levelInPhase = (currentLevel - 1) % 5 + 1;
+                
+                // Calculate and apply difficulty increases
+                let speedIncrease = isSpeedPhase ? (0.25 - (levelInPhase * 0.01)) : (0.05 + (levelInPhase * 0.005));
+                let spawnRateIncrease = isSpeedPhase ? (0.0005 + (levelInPhase * 0.0001)) : (0.002 + (levelInPhase * 0.0005));
+                
+                carSpeed += speedIncrease;
+                spawnRate += spawnRateIncrease;
+                
+                // Cap maximum values
+                carSpeed = Math.min(carSpeed, 12);
+                spawnRate = Math.min(spawnRate, 0.15);
+                
+                lastCheckpointTime = millis();
+                currentLevel++;
+                
+                // Reset heart power-up flags for the new level
+                if (currentLevel % 5 !== 0) {
+                    heartSpawned = false;
+                    heartCollected = false;
+                }
+                
+                // Only show message for heart power-up availability
+                if (currentLevel % 5 === 0) {
+                    const heartNotif = document.createElement('div');
+                    heartNotif.className = 'achievement';
+                    heartNotif.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: rgba(255, 50, 50, 0.3);
+                        border: 2px solid rgba(255, 50, 50, 0.8);
+                        color: #fff;
+                        padding: 15px 30px;
+                        border-radius: 10px;
+                        font-size: 20px;
+                        text-align: center;
+                        animation: fadeInRight 0.3s ease-out;
+                        z-index: 1000;
+                    `;
+                    heartNotif.innerHTML = `❤️ Extra Life Available!`;
+                    document.body.appendChild(heartNotif);
+                    setTimeout(() => {
+                        heartNotif.style.opacity = '0';
+                        heartNotif.style.transform = 'translateX(100px)';
+                        heartNotif.style.transition = 'all 0.3s ease-out';
+                        setTimeout(() => heartNotif.remove(), 2000);
+                    }, 2000);
+                }
+            }
+            
+            // UI elements
+            drawUI();
+        }
+
+        function drawArrow(x, y, direction) {
+            let alpha = 100;
+            
+            if (direction === 1) {
+                // Downward arrow (red lanes)
+                fill(255, 50, 100, alpha); // Red in day mode
+            } else {
+                // Upward arrow (blue lanes)
+                fill(0, 150, 255, alpha); // Blue in day mode
+            }
+            
+            let arrowSize = width/60;
+            
+            beginShape();
+            if (direction === 1) {
+                // Downward pointing arrow
+                vertex(x, y + arrowSize);
+                vertex(x - arrowSize/2, y);
+                vertex(x + arrowSize/2, y);
+            } else {
+                // Upward pointing arrow
+                vertex(x, y - arrowSize);
+                vertex(x - arrowSize/2, y);
+                vertex(x + arrowSize/2, y);
+            }
+            endShape(CLOSE);
+        }
+
+        function drawUI() {
+            // Score and lives
+            fill(0, 255, 255);
+            textSize(width * 0.04);
+            text(`Score: ${score}`, width * 0.1, height * 0.05);
+            
+            // Heart symbols for lives
+            textSize(width * 0.05);
+            for (let i = 0; i < lives; i++) {
+                text("♥", width * 0.1 + i * width * 0.05, height * 0.1);
+            }
+            
+            // High Score
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+            }
+            textSize(width * 0.04);
+            text(`High Score: ${highScore}`, width * 0.1, height * 0.15);
+            
+            // Level indicator
+            text(`Level: ${currentLevel}`, width * 0.1, height * 0.2);
+            
+            // Progress bar
+            fill(0, 255, 255);
+            noFill();
+            stroke(0, 255, 255);
+            rect(width * 0.3, height * 0.02, width * 0.4, height * 0.02);
+            
+            fill(0, 255, 255, 100);
+            rect(width * 0.3, height * 0.02, map(millis() - lastCheckpointTime, 0, 10000, 0, width * 0.4), height * 0.02);
+        }
+
+        function drawGameOver() {
+            if (isNightMode) {
+                fill(0, 128, 128, 200); // Darker cyan with transparency
+            } else {
+                fill(0, 255, 255); // Cyan color for TRON theme
+            }
+            textSize(width * 0.08);
+            textAlign(CENTER);
+            text("Game Over", width/2, height/3);
+            textSize(width * 0.05);
+            text(`Final Score: ${score}`, width/2, height/2);
+            text(`Level Reached: ${currentLevel}`, width/2, height/2 + height * 0.1);
+            text(`High Score: ${highScore}`, width/2, height/2 + height * 0.2);
+            text("Press 'R' to Restart", width/2, height/2 + height * 0.3);
+        }
+
+        class Player {
+            constructor() {
+                this.lane = 3;
+                this.width = width/8;
+                this.height = height/15;
+                this.x = this.lane * width/6 + width/12;
+                this.y = height/2;
+                this.speed = 0;
+                this.maxSpeed = 5;
+                this.direction = -1;
+                this.invincible = false;
+                this.invincibleTimer = 0;
+                this.flashTimer = 0;
+            }
+            
+            update() {
+                // Calculate target X position based on lane
+                let targetX = this.lane * width/6 + width/12;
+                // Move toward target lane
+                let dx = targetX - this.x;
+                this.speed = constrain(dx * 0.2, -this.maxSpeed, this.maxSpeed);
+                this.x += this.speed;
+                
+                // Update invincibility
+                if (this.invincible) {
+                    this.invincibleTimer--;
+                    this.flashTimer++;
+                    if (this.invincibleTimer <= 0) {
+                        this.invincible = false;
+                    }
+                }
+            }
+            
+            show() {
+                // Glow effect
+                noStroke();
+                fill(255, 255, 0, 30); // Yellow glow
+                
+                for (let i = 5; i > 0; i--) {
+                    ellipse(this.x, this.y, this.width + i*5, this.height + i*5);
+                }
+                
+                // Car body
+                fill(255, 255, 0); // Yellow car
+                rect(this.x - this.width/2, this.y - this.height/2, this.width, this.height, 5);
+                
+                // Headlights
+                fill(255, 255, 200);
+                let headlightSize = this.height/3;
+                
+                // Headlights at the top of the car
+                ellipse(this.x - this.width/3, this.y - this.height/2, headlightSize, headlightSize);
+                ellipse(this.x + this.width/3, this.y - this.height/2, headlightSize, headlightSize);
+                
+                // Taillights
+                fill(255, 0, 0, 200);
+                ellipse(this.x - this.width/3, this.y + this.height/2, this.height/4, this.height/4);
+                ellipse(this.x + this.width/3, this.y + this.height/2, this.height/4, this.height/4);
+                
+                // Headlight beams
+                for (let i = 1; i <= 8; i++) {
+                    let beamLength = this.height * (1.5 + i/2);
+                    let beamWidth = this.width/3 * (1 - i/12);
+                    fill(255, 255, 200, 50/i);
+                    ellipse(this.x - this.width/3, this.y - this.height/2 - beamLength/2, beamWidth, beamLength);
+                    ellipse(this.x + this.width/3, this.y - this.height/2 - beamLength/2, beamWidth, beamLength);
+                    
+                    // Add glow at beam source
+                    fill(255, 255, 200, 90/i);
+                    ellipse(this.x - this.width/3, this.y - this.height/2, headlightSize + i*2, headlightSize + i*2);
+                    ellipse(this.x + this.width/3, this.y - this.height/2, headlightSize + i*2, headlightSize + i*2);
+                }
+            }
+            
+            moveLeft() {
+                if (this.lane > 0) {
+                    this.lane--;
+                }
+            }
+            
+            moveRight() {
+                if (this.lane < 5) {
+                    this.lane++;
+                }
+            }
+            
+            makeInvincible(frames) {
+                this.invincible = true;
+                this.invincibleTimer = frames;
+                this.flashTimer = 0;
+            }
+        }
+
+        class Car {
+            constructor(lane) {
+                this.lane = lane;
+                this.width = width * 0.07;
+                this.height = height * 0.05;
+                // FLIPPED: Now lanes 0-2 are red (opposing) and lanes 3-5 are blue (same direction)
+                // Direction is flipped: blue cars move upward (-1), red cars move downward (1)
+                this.direction = (lane < 3) ? 1 : -1;
+                this.x = this.lane * width/6 + width/12;
+                
+                // Position cars at the edges of the screen
+                if (this.direction === -1) {
+                    // Blue cars (moving upward) start at the bottom
+                    this.y = height + this.height;
+                } else {
+                    // Red cars (moving downward) start at the top
+                    this.y = -this.height;
+                }
+                
+                this.scored = false;
+                
+                // Green car properties (lane changers)
+                // Only introduce green cars after level 5
+                let greenCarChance = currentLevel > 5 ? Math.min(0.3, (currentLevel - 5) * 0.03) : 0;
+                this.isGreenCar = Math.random() < greenCarChance;
+                this.laneChangeTimer = 0;
+                this.laneChangeInterval = 60 + Math.floor(Math.random() * 60); // Frames between lane changes
+                this.targetLane = this.lane;
+                
+                // Adjust speed based on direction and current level
+                // Calculate level group and phase for consistent difficulty scaling
+                let levelGroup = Math.floor((currentLevel - 1) / 5);
+                let isSpeedPhase = levelGroup % 2 === 0; // Even groups (0, 2, 4...) focus on speed
+                let levelInPhase = (currentLevel - 1) % 5 + 1;
+                let isTransitionLevel = levelInPhase === 5; // Last level in a phase
+                
+                // Base multiplier depends on direction
+                let baseMultiplier = (this.direction === 1) ? 2.0 : 1.0;
+                
+                // Level-based scaling factor with smoother transitions
+                let levelScaling;
+                
+                if (isSpeedPhase) {
+                    // During speed phases, scale more with level but with diminishing returns
+                    levelScaling = 0.05 + Math.min(0.35, levelInPhase * 0.07);
+                } else {
+                    // During density phases, scale minimally with level but still increase
+                    levelScaling = 0.05 + Math.min(0.15, levelInPhase * 0.03);
+                }
+                
+                // Apply transition smoothing - reduce speed jump between phases
+                if (isTransitionLevel) {
+                    // If we're at the last level of a phase, start transitioning to next phase
+                    if (isSpeedPhase) {
+                        // Transitioning from speed to density - reduce speed scaling slightly
+                        levelScaling *= 0.9;
+                    } else {
+                        // Transitioning from density to speed - increase speed scaling slightly
+                        levelScaling *= 1.1;
+                    }
+                }
+                
+                // Calculate final speed with more balanced scaling
+                this.speed = carSpeed * baseMultiplier * (1 + levelScaling);
+                
+                // Apply direction-specific adjustments with better balance
+                if (this.direction === 1) {
+                    // Opposing traffic (red cars) - always faster but with balanced scaling
+                    this.speed *= 1.1;
+                    
+                    // Add slight randomization to make gameplay less predictable but still fair
+                    this.speed *= (0.95 + Math.random() * 0.1); // ±5% speed variation
+                } else {
+                    // Same-direction traffic (blue cars) - add slight randomization
+                    this.speed *= (0.97 + Math.random() * 0.06); // ±3% speed variation
+                }
+                
+                // Green cars move slightly slower to give player time to react to lane changes
+                if (this.isGreenCar) {
+                    this.speed *= 0.85;
+                }
+                
+                // UPDATED: Now lanes 0-2 are red and lanes 3-5 are blue
+                if (this.isGreenCar) {
+                    this.color = color(50, 200, 50);
+                    this.detailColor = color(100, 255, 100);
+                } else if (this.direction === -1) {
+                    this.color = color(0, 150, 255);
+                    this.detailColor = color(100, 200, 255);
+                } else {
+                    this.color = color(255, 50, 100);
+                    this.detailColor = color(255, 100, 150);
+                }
+            }
+            
+            update() {
+                // Handle lane changing for green cars
+                if (this.isGreenCar) {
+                    this.laneChangeTimer++;
+                    
+                    // Time to change lanes
+                    if (this.laneChangeTimer >= this.laneChangeInterval) {
+                        this.laneChangeTimer = 0;
+                        
+                        // Determine new lane
+                        let possibleLanes = [];
+                        
+                        // Can only change to adjacent lanes
+                        if (this.lane > 0) possibleLanes.push(this.lane - 1);
+                        if (this.lane < 5) possibleLanes.push(this.lane + 1);
+                        
+                        // Stay in the same direction lanes (red or blue)
+                        possibleLanes = possibleLanes.filter(l => {
+                            return (l < 3 && this.lane < 3) || (l >= 3 && this.lane >= 3);
+                        });
+                        
+                        if (possibleLanes.length > 0) {
+                            this.targetLane = possibleLanes[Math.floor(Math.random() * possibleLanes.length)];
+                        }
+                    }
+                    
+                    // Smooth lane transition
+                    if (this.lane !== this.targetLane) {
+                        let targetX = this.targetLane * width/6 + width/12;
+                        let currentX = this.x;
+                        this.x = lerp(currentX, targetX, 0.1);
+                        
+                        // If close enough to target, snap to it
+                        if (Math.abs(this.x - targetX) < 2) {
+                            this.x = targetX;
+                            this.lane = this.targetLane;
+                        }
+                    }
+                }
+                
+                this.y += this.speed * this.direction;
+            }
+            
+            show() {
+                // Main car body
+                if (this.isGreenCar) {
+                    fill(50, 200, 50);
+                    stroke(255, 255, 255);
+                } else if (this.direction === -1) {
+                    fill(0, 150, 255);
+                    stroke(255, 255, 255);
+                } else {
+                    fill(255, 50, 100);
+                    stroke(255, 255, 255);
+                }
+                strokeWeight(2);
+                rect(this.x - this.width/2, this.y, this.width, this.height, 5);
+                
+                // Car details
+                if (this.isGreenCar) {
+                    fill(100, 255, 100);
+                } else if (this.direction === -1) {
+                    fill(100, 200, 255);
+                } else {
+                    fill(255, 100, 150);
+                }
+                rect(this.x - this.width/4, this.y + (this.direction === -1 ? this.height * 2/3 : 0), 
+                     this.width/2, this.height/2, 2);
+                
+                // Lights
+                if (this.direction === -1) {
+                    // Headlights for upward-moving cars
+                    fill(255, 255, 220);
+                    let headlightSize = this.height/3;
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, headlightSize);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, headlightSize);
+                    
+                    // Taillights
+                    fill(255, 50, 50, 255);
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, this.height/4);
+                    
+                    // Headlight beams
+                    for (let i = 1; i <= 3; i++) {
+                        noStroke();
+                        fill(255, 255, 200, 25/i);
+                        let beamWidth = this.width * (0.7 + i * 0.5);
+                        let beamHeight = this.height * (2 + i);
+                        
+                        triangle(
+                            this.x, this.y + this.height * 0.1,
+                            this.x - beamWidth/2, this.y - beamHeight,
+                            this.x + beamWidth/2, this.y - beamHeight
+                        );
+                    }
+                } else {
+                    // Headlights for downward-moving cars
+                    fill(255, 255, 220);
+                    let headlightSize = this.height/3;
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.8, this.width/6, headlightSize);
+                    
+                    // Taillights
+                    fill(255, 50, 50, 255);
+                    ellipse(this.x - this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
+                    ellipse(this.x + this.width/3, this.y + this.height * 0.2, this.width/6, this.height/4);
+                    
+                    // Headlight beams
+                    for (let i = 1; i <= 3; i++) {
+                        noStroke();
+                        fill(255, 255, 200, 25/i);
+                        let beamWidth = this.width * (0.7 + i * 0.5);
+                        let beamHeight = this.height * (2 + i);
+                        
+                        triangle(
+                            this.x, this.y + this.height * 0.9,
+                            this.x - beamWidth/2, this.y + this.height + beamHeight,
+                            this.x + beamWidth/2, this.y + this.height + beamHeight
+                        );
+                    }
+                }
+                
+                // Add lane change indicator for green cars
+                if (this.isGreenCar && this.lane !== this.targetLane) {
+                    noStroke();
+                    fill(50, 255, 50, 200);
+                    
+                    let arrowDir = this.targetLane > this.lane ? 1 : -1;
+                    let arrowSize = this.width * 0.4;
+                    let arrowX = this.x + (arrowDir * this.width * 0.6);
+                    let arrowY = this.y + this.height * 0.5;
+                    
+                    triangle(
+                        arrowX, arrowY,
+                        arrowX - (arrowDir * arrowSize * 0.5), arrowY - arrowSize * 0.5,
+                        arrowX - (arrowDir * arrowSize * 0.5), arrowY + arrowSize * 0.5
+                    );
+                }
+                
+                strokeWeight(1);
+            }
+            
+            hits(player) {
+                // Check if car and player are in the same lane
+                if (this.lane !== player.lane) return false;
+                
+                // Calculate vertical overlap
+                let carTop = this.y;
+                let carBottom = this.y + this.height;
+                let playerTop = player.y - player.height/2;
+                let playerBottom = player.y + player.height/2;
+                
+                // Check for collision
+                return (carBottom > playerTop && carTop < playerBottom);
+            }
+            
+            offscreen() {
+                // Check if cars have moved completely off screen
+                if (this.direction === 1) {
+                    // Red cars moving down
+                    return this.y > height + this.height;
+                } else {
+                    // Blue cars moving up
+                    return this.y < -this.height;
+                }
+            }
+        }
+
+        class Heart {
+            constructor(lane) {
+                // Only spawn on red lanes (0-2)
+                this.lane = lane;
+                this.width = width * 0.05;
+                this.height = width * 0.05;
+                this.x = this.lane * width/6 + width/12;
+                this.y = -this.height; // Start above the screen
+                this.speed = carSpeed * 0.7; // Move slower than cars
+                this.collected = false;
+                this.pulseAmount = 0;
+                this.pulseDir = 1;
+            }
+            
+            update() {
+                // Move downward (same as red cars)
+                this.y += this.speed;
+                
+                // Pulsating effect
+                this.pulseAmount += 0.05 * this.pulseDir;
+                if (this.pulseAmount > 1.5) this.pulseDir = -1;
+                if (this.pulseAmount < 0.5) this.pulseDir = 1;
+            }
+            
+            show() {
+                // Draw heart with pulsating effect
+                noStroke();
+                
+                // Glowing effect
+                for (let i = 3; i > 0; i--) {
+                    if (this.isGreenCar) {
+                        fill(255, 50, 50, 100 / i); // Red in night mode too
+                    } else {
+                        fill(255, 50, 50, 100 / i); // Red heart
+                    }
+                    
+                    // Heart shape with pulsating size
+                    let size = this.width * (1 + this.pulseAmount * 0.2 * i);
+                    heartShape(this.x, this.y, size);
+                }
+                
+                // Main heart
+                if (this.isGreenCar) {
+                    fill(255, 50, 50); // Keep heart red even in night mode
+                } else {
+                    fill(255, 50, 50);
+                }
+                heartShape(this.x, this.y, this.width);
+            }
+            
+            hits(player) {
+                // Check if heart and player are in the same lane
+                if (this.lane !== player.lane) return false;
+                
+                // Calculate vertical overlap
+                let heartTop = this.y - this.height/2;
+                let heartBottom = this.y + this.height/2;
+                let playerTop = player.y - player.height/2;
+                let playerBottom = player.y + player.height/2;
+                
+                // Check for collision
+                return (heartBottom > playerTop && heartTop < playerBottom);
+            }
+            
+            offscreen() {
+                return (this.y > height + this.height); // Check if heart has moved completely off screen
+            }
+        }
+        
+        function heartShape(x, y, size) {
+            beginShape();
+            // Heart shape using bezier curves
+            vertex(x, y + size * 0.3);
+            bezierVertex(x, y, x - size/2, y - size/4, x - size/2, y - size/2);
+            bezierVertex(x - size/2, y - size * 0.8, x, y - size * 0.7, x, y - size * 0.3);
+            bezierVertex(x, y - size * 0.7, x + size/2, y - size * 0.8, x + size/2, y - size/2);
+            bezierVertex(x + size/2, y - size/4, x, y, x, y + size * 0.3);
+            endShape(CLOSE);
+        }
+
+        function keyPressed() {
+            if (gameState === "playing") {
+                if (keyCode === LEFT_ARROW) {
+                    player.moveLeft();
+                }
+                if (keyCode === RIGHT_ARROW) {
+                    player.moveRight();
+                }
+            }
+            
+            if (key === 's' && (gameState === "menu" || gameState === "rules")) {
+                startGame();
+            }
+            if (key === 'r' && gameState === "gameover") {
+                resetGame();
+            }
+        }
+
+        function resetGame() {
+            // Reset game variables
+            score = 0;
+            lives = 3;
+            combo = 0;
+            maxCombo = 0;
+            cars = [];
+            currentLevel = 1;
+            carSpeed = 3;
+            spawnRate = 0.02;
+            lastCheckpointTime = millis();
+            gameState = "playing";
+            player = new Player();
+            laneAnimOffset = 0;
+            
+            // Reset heart power-up variables
+            heartPowerUp = null;
+            heartSpawned = false;
+            heartCollected = false;
+            
+            // Update button visibility
+            const startBtn = document.getElementById('startBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            startBtn.style.display = 'none';
+            restartBtn.style.display = 'block';
+            
+            // Show starting message
+            const elem = document.createElement('div');
+            elem.className = 'achievement';
+            elem.innerHTML = `Game Start!<br>Level ${currentLevel}`;
+            elem.style.top = '40%';
+            elem.style.right = '50%';
+            document.body.appendChild(elem);
+            setTimeout(() => elem.remove(), 2000);
+        }
+    </script>
+</body>
+</html>
